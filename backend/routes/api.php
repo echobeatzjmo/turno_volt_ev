@@ -18,4 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/reservations', [ReservationController::class, 'store']);
 
+    Route::put('/reservations/{reservation}', [ReservationController::class, 'update']);
+
+    Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy']);
+
 });

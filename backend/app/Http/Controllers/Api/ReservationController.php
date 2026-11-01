@@ -99,4 +99,57 @@ class ReservationController extends Controller
         'data' => $reservation,
     ]);
     }
+
+    public function update(Request $request, Reservation $reservation, ReservationService $reservationService) {
+    $user = $request->user();
+
+    // Solo el propietario puede editar su reserva.
+    if ($reservation->user_id !== $user->id) {
+        return response()->json([
+            'message' => 'No tienes permiso para modificar esta reserva.',
+        ], 403);
+    }
+
+    // Validar los datos recibidos.
+    $data = $request->validate([
+        'charger_id' => ['required', 'integer', 'exists:chargers,id'],
+        'start_at' => ['required', 'date'],
+        'end_at' => ['required', 'date', 'after:start_at'],
+        'notes' => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    // Ejecutar la modificación mediante el servicio.
+    $updatedReservation = $reservationService->update(
+        $user,
+        $reservation,
+        $data
+    );
+
+    return response()->json([
+        'message' => 'Reserva actualizada correctamente.',
+        'data' => $updatedReservation,
+    ]);
+}
+
+    public function destroy(Request $request, Reservation $reservation, ReservationService $reservationService) {
+    $user = $request->user();
+
+    // Solo el propietario puede cancelar su reserva.
+    if ($reservation->user_id !== $user->id) {
+        return response()->json([
+            'message' => 'No tienes permiso para cancelar esta reserva.',
+        ], 403);
+    }
+
+    // Ejecutar la cancelación mediante el servicio.
+    $cancelledReservation = $reservationService->cancel(
+        $user,
+        $reservation
+    );
+
+    return response()->json([
+        'message' => 'Reserva cancelada correctamente.',
+        'data' => $cancelledReservation,
+    ]);
+}
 }
