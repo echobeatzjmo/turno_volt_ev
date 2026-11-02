@@ -11,9 +11,13 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
-    public function create(User $user, array $data): Reservation
+    public function create(User $user, array $data, ?User $created_by = null): Reservation
     {
-        return DB::transaction(function () use ($user, $data) {
+        return DB::transaction(function () use ($user, $data, $createdBy) {
+
+            // Si no se especifica quién creó la reserva,
+            // se considera que la creó el propio residente.
+            $createdBy = $createdBy ?? $user;
 
             // Bloquear al usuario para evitar reservas simultáneas.
             User::whereKey($user->id)
@@ -153,6 +157,7 @@ class ReservationService
             // Crear reserva.
             return Reservation::create([
                 'user_id' => $user->id,
+                'created_by' => $createdBy->id,
                 'charger_id' => $charger->id,
                 'operational_date' => $operationalDate,
                 'shift_type' => $shiftType,
