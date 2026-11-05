@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ReservationService;
+use App\Models\User;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -11,49 +12,82 @@ use Illuminate\Validation\ValidationException;
 class ReservationController extends Controller
 {
     public function store(
-        Request $request,
-        ReservationService $reservationService
+    Request $request,
+    ReservationService $reservationService
+) {
+    $creator = $request->user();
+
+    // Determinar el residente propietario de la reserva.
+    if ($creator->role === 'usuario') {
+
+        // El residente crea su propia reserva.
+        $resident = $creator;
+
+    } elseif (
+        in_array($creator->role, ['administrador_avanzado', 'administrador', 'operador'])
     ) {
-        // Validar los datos que llegan desde la aplicación.
+
+        // Administrador y operador deben indicar el residente.
         $data = $request->validate([
-            'charger_id' => [
+            'user_id' => [
                 'required',
                 'integer',
-                'exists:chargers,id',
-            ],
-
-            'start_at' => [
-                'required',
-                'date',
-            ],
-
-            'end_at' => [
-                'required',
-                'date',
-                'after:start_at',
-            ],
-
-            'notes' => [
-                'nullable',
-                'string',
-                'max:1000',
+                'exists:users,id',
             ],
         ]);
 
-        // Usuario autenticado.
-        $user = $request->user();
+        $resident = User::findOrFail($data['user_id']);
 
-        // Delegar las reglas de negocio al servicio.
-        $reservation = $reservationService->create(
-            $user,
-            $data
-        );
+        // Solo se pueden crear reservas para residentes.
+        if ($resident->role !== 'usuario') {
+            return response()->json([
+                'message' => 'Las reservas solo pueden registrarse a nombre de un residente.',
+            ], 422);
+        }
+
+    } else {
 
         return response()->json([
-            'message' => 'Reserva creada correctamente.',
-            'data' => $reservation,
-        ], 201);
+            'message' => 'No tienes permisos para registrar reservas.',
+        ], 403);
     }
+
+    // Validar los datos de la reserva.
+    $data = $request->validate([
+        'charger_id' => [
+            'required',
+            'integer',
+            'exists:chargers,id',
+        ],
+        'start_at' => [
+            'required',
+            'date',
+        ],
+        'end_at' => [
+            'required',
+            'date',
+            'after:start_at',
+        ],
+        'notes' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+    ]);
+
+    // Crear la reserva a nombre del residente,
+    // registrando quién realizó la operación.
+    $reservation = $reservationService->create(
+        $resident,
+        $data,
+        $creator
+    );
+
+    return response()->json([
+        'message' => 'Reserva creada correctamente.',
+        'data' => $reservation->load(['user', 'charger', 'createdBy']),
+    ], 201);
+}
 
     public function index(Request $request)
     {
@@ -100,11 +134,27 @@ class ReservationController extends Controller
     ]);
     }
 
-    public function update(Request $request, Reservation $reservation, ReservationService $reservationService) {
+    public function update(
+    Request $request,
+    Reservation $reservation,
+    ReservationService $reservationService
+) {
     $user = $request->user();
 
-    // Solo el propietario puede editar su reserva.
-    if ($reservation->user_id !== $user->id) {
+    // Determinar los permisos según el rol.
+    $isAdvancedAdmin = $user->role === 'administrador_avanzado';
+    $isAdmin = $user->role === 'administrador';
+    $isResident = $user->role === 'usuario';
+
+    // El operador no tiene permiso para editar reservas.
+    if (!$isAdvancedAdmin && !$isAdmin && !$isResident) {
+        return response()->json([
+            'message' => 'No tienes permisos para modificar reservas.',
+        ], 403);
+    }
+
+    // El residente solamente puede editar sus propias reservas.
+    if ($isResident && $reservation->user_id !== $user->id) {
         return response()->json([
             'message' => 'No tienes permiso para modificar esta reserva.',
         ], 403);
@@ -118,9 +168,9 @@ class ReservationController extends Controller
         'notes' => ['nullable', 'string', 'max:1000'],
     ]);
 
-    // Ejecutar la modificación mediante el servicio.
+    // Mantener al residente como propietario de la reserva.
     $updatedReservation = $reservationService->update(
-        $user,
+        $reservation->user,
         $reservation,
         $data
     );

@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
-    public function create(User $user, array $data, ?User $created_by = null): Reservation
+    public function create(User $user, array $data, ?User $createdBy = null): Reservation
     {
         return DB::transaction(function () use ($user, $data, $createdBy) {
 
