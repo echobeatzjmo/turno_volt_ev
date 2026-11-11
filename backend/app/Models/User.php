@@ -33,8 +33,16 @@ class User extends Authenticatable
     }
 
     public function reservations(): HasMany
-{
-    return $this->hasMany(Reservation::class);
-}
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
+     * Observaciones registradas por este usuario.
+     */
+    public function observations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReservationObservation::class);
+    }
 
 }

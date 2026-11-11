@@ -43,4 +43,13 @@ class Reservation extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+    * Observaciones registradas para esta reserva.
+    */
+    public function observations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReservationObservation::class);
+    }
+
 }
