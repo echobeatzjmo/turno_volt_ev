@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\ReservationObservationController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -21,5 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/reservations/{reservation}', [ReservationController::class, 'update']);
 
     Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy']);
+
+    Route::post('/reservations/{reservation}/observations', [ReservationObservationController::class, 'store']);
+
+    Route::get('/reservations/{reservation}/observations', [ReservationObservationController::class, 'index']);
 
 });
