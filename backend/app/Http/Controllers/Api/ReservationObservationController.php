@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\NotificationService;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
-use App\Mail\ReservationObservationMail;
-use App\Models\User;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 
 class ReservationObservationController extends Controller
@@ -14,7 +12,7 @@ class ReservationObservationController extends Controller
     /**
      * Registrar una observación asociada a una reserva.
      */
-    public function store(Request $request, Reservation $reservation)
+    public function store(Request $request, Reservation $reservation, NotificationService $notificationService)
     {
         $user = $request->user();
 
@@ -52,16 +50,8 @@ class ReservationObservationController extends Controller
             'reservation.charger',
         ]);
 
-        // Consultar los usuarios que tienen el rol administrador.
-        $administrators = User::where('role', 'administrador')
-            ->whereNotNull('email')
-            ->get();
-
-        // Enviar una notificación a cada administrador.
-        foreach ($administrators as $administrator) {
-            Mail::to($administrator->email)
-                ->send(new ReservationObservationMail($observation));
-        }
+        // Notificar a los administradores sobre la nueva observación.
+        $notificationService->notifyAdministratorsOfObservation($observation);
 
         // Devolver la observación registrada.
         return response()->json([
