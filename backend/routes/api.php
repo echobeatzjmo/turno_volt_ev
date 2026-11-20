@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\ReservationObservationController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -12,7 +13,18 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
+        // Gestión de usuarios.
+    Route::get('/users', [UserController::class, 'index']);
 
+    Route::post('/users', [UserController::class, 'store']);
+
+    Route::get('/users/{user}', [UserController::class, 'show']);
+
+    Route::put('/users/{user}', [UserController::class, 'update']);
+
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+        // Gestión de reservas y observaciones
     Route::get('/reservations', [ReservationController::class, 'index']);
 
     Route::get('/reservations/{reservation}', [ReservationController::class, 'show']);
