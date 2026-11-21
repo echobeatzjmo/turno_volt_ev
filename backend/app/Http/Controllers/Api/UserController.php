@@ -161,45 +161,49 @@ class UserController extends Controller
     }
 
     /**
-     * Eliminar un usuario.
+     * Eliminar un usuario (Solo lo desactivará).
      */
     public function destroy(Request $request, User $user)
     {
         $authenticatedUser = $request->user();
 
-        // Verificar permisos administrativos.
         if (!in_array($authenticatedUser->role, [
             'administrador_avanzado',
-            'administrador',
+            'administrador'
         ])) {
             return response()->json([
-                'message' => 'No tienes permisos para eliminar usuarios.',
+                'message' => 'No tienes permisos para realizar esta acción.'
             ], 403);
         }
 
-        // El administrador solo puede eliminar residentes y operadores.
+        // Evitar que el usuario desactive su propia cuenta.
+        if ($authenticatedUser->id === $user->id) {
+            return response()->json([
+                'message' => 'No puedes desactivar tu propia cuenta.'
+            ], 403);
+        }
+
+        // El administrador solo puede gestionar usuarios y operadores.
         if (
             $authenticatedUser->role === 'administrador' &&
             !in_array($user->role, ['usuario', 'operador'])
         ) {
             return response()->json([
-                'message' => 'No tienes permisos para eliminar esta cuenta.',
+                'message' => 'No tienes permisos para desactivar esta cuenta.'
             ], 403);
         }
 
-        // Evitar que un usuario elimine su propia cuenta.
-        if ($authenticatedUser->id === $user->id) {
-            return response()->json([
-                'message' => 'No puedes eliminar tu propia cuenta.',
-            ], 422);
-        }
+        // Desactivar la cuenta sin eliminar sus registros.
+        $user->is_active = false;
+        $user->save();
 
-        // Eliminar el usuario.
-        $user->delete();
+        // Invalidar los tokens existentes de esa cuenta.
+        $user->tokens()->delete();
 
         return response()->json([
-            'message' => 'Usuario eliminado correctamente.',
-        ]);
+            'message' => 'Cuenta desactivada correctamente.',
+            'user' => $user
+        ], 200);
     }
 
 }
