@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\ReservationObservationController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AvailabilityController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -24,6 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
+        // Consulta de disponibilidad de cargadores
+    Route::get('/availability', [AvailabilityController::class, 'index']);
+
         // Gestión de reservas y observaciones
     Route::get('/reservations', [ReservationController::class, 'index']);
 
@@ -38,5 +42,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservations/{reservation}/observations', [ReservationObservationController::class, 'store']);
 
     Route::get('/reservations/{reservation}/observations', [ReservationObservationController::class, 'index']);
-
+    
 });
