@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Models\Charger;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\AuditService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
+    public function __construct(private AuditService $auditService) {}
+
     public function create(User $user, array $data, ?User $createdBy = null): Reservation
     {
         return DB::transaction(function () use ($user, $data, $createdBy) {
@@ -155,7 +158,7 @@ class ReservationService
             }
 
             // Crear reserva.
-            return Reservation::create([
+            $reservation = Reservation::create([
                 'user_id' => $user->id,
                 'created_by' => $createdBy->id,
                 'charger_id' => $charger->id,
@@ -166,6 +169,19 @@ class ReservationService
                 'status' => 'scheduled',
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            // Registrar la creación en la auditoría.
+            $this->auditService->log(
+                'reservation_created',
+                $reservation,
+                'Se creó una reserva.',
+                null,
+                $reservation->toArray(),
+                $createdBy
+            );
+
+            // Retornar la reserva creada.
+            return $reservation;
         });
     }
 

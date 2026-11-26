@@ -11,10 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
 {
-    public function store(
-    Request $request,
-    ReservationService $reservationService
-) {
+    public function store(Request $request, ReservationService $reservationService) {
     $creator = $request->user();
 
     // Determinar el residente propietario de la reserva.
