@@ -186,6 +186,7 @@ class ReservationService
     }
 
     public function update(User $user, Reservation $reservation, array $data): Reservation 
+
     {
         return DB::transaction(function () use ($user, $reservation, $data) {
 
@@ -198,6 +199,9 @@ class ReservationService
         $reservation = Reservation::whereKey($reservation->id)
             ->lockForUpdate()
             ->firstOrFail();
+
+        // Capturar los valores anteriores de la reserva.
+        $oldValues = $reservation->getAttributes();
 
         // No se permite editar una reserva que ya comenzó.
         if (
@@ -355,6 +359,19 @@ class ReservationService
             'notes' => $data['notes'] ?? null,
         ]);
 
+        // Capturar los valores nuevos de la reserva.
+        $newValues = $reservation->fresh()->getAttributes();
+
+        // Registrar la modificación en la auditoría.
+        $this->auditService->log(
+            'reservation_updated',
+            $reservation,
+            'Se modificó una reserva.',
+            $oldValues,
+            $newValues,
+            $user
+        );
+
         return $reservation->fresh(['user', 'charger']);
     });
     }
@@ -371,6 +388,9 @@ class ReservationService
         $reservation = Reservation::whereKey($reservation->id)
             ->lockForUpdate()
             ->firstOrFail();
+
+        // Capturar los valores anteriores de la reserva.
+        $oldValues = $reservation->getAttributes();
 
         // Verificar que la reserva todavía esté programada.
         if ($reservation->status !== 'scheduled') {
@@ -406,6 +426,19 @@ class ReservationService
         $reservation->update([
             'status' => 'cancelled',
         ]);
+
+        // Capturar los valores nuevos de la reserva.
+        $newValues = $reservation->fresh()->getAttributes();
+
+        // Registrar la cancelación en la auditoría.
+        $this->auditService->log(
+            'reservation_cancelled',
+            $reservation,
+            'Se canceló una reserva.',
+            $oldValues,
+            $newValues,
+            $user
+        );
 
         return $reservation->fresh(['user', 'charger']);
     });

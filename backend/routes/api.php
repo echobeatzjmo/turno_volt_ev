@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\ReservationObservationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AvailabilityController;
+use App\Http\Controllers\Api\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Consulta de disponibilidad de cargadores
     Route::get('/availability', [AvailabilityController::class, 'index']);
+
+    // Consulta de auditoría
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
 
         // Gestión de reservas y observaciones
     Route::get('/reservations', [ReservationController::class, 'index']);
